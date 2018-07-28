@@ -1,0 +1,54 @@
+Sub easy_2()
+    
+    screenupdatestate = Application.ScreenUpdating
+    statusbarstate = Application.DisplayStatusBar
+    calcstate = Application.Calculation
+    eventsstate = Application.EnableEvents
+
+    Application.ScreenUpdating = False
+    Application.DisplayStatusBar = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
+    Dim sht As Excel.Worksheet
+    Dim colcount As Long
+    Dim rowcount As Long
+    Dim lrowdata As Long
+    Dim tot_vol As Double
+    Dim sum_ctr As Long
+    
+    For Each sht In ActiveWorkbook.Worksheets
+        
+        'Determine size of raw data
+        lrowdata = sht.Cells(sht.Rows.Count, "A").End(xlUp).Row
+        
+        'Add header rows
+        sht.Range("I1") = "Ticker"
+        sht.Range("J1") = "Total Stock Volume"
+        
+        'Initialize variables for first data set
+        sum_ctr = 2
+        
+        'Loop to cycle through each row
+        For rowcount = 2 To lrowdata
+            
+            'Evaluate if current row = next row
+            If sht.Cells(rowcount, 1) <> sht.Cells(rowcount + 1, 1) Then
+                sht.Cells(sum_ctr, 9) = sht.Cells(rowcount, 1) 'Set summary ticker row to current row
+                sht.Cells(sum_ctr, 10) = tot_vol + sht.Cells(rowcount, 7) 'Add current row to volume total
+                
+                'Reset variables
+                tot_vol = 0
+                sum_ctr = sum_ctr + 1
+            Else
+                tot_vol = tot_vol + sht.Cells(rowcount, 7) 'Cumulate volume metric
+            End If
+        Next rowcount
+    Next sht
+    
+    Application.ScreenUpdating = screenupdatestate
+    Application.DisplayStatusBar = statusbarstate
+    Application.Calculation = calcstate
+    Application.EnableEvents = eventsstate
+    
+End Sub

@@ -1,0 +1,128 @@
+Sub hard_2()
+
+    screenupdatestate = Application.ScreenUpdating
+    statusbarstate = Application.DisplayStatusBar
+    calcstate = Application.Calculation
+    eventsstate = Application.EnableEvents
+
+    Application.ScreenUpdating = False
+    Application.DisplayStatusBar = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
+    Dim sht As Excel.Worksheet
+    Dim colcount As Long
+    Dim rowcount As Long
+    Dim rowcount2 As Long
+    Dim lrowdata As Long
+    Dim lrowsum As Long
+    Dim close_val As Double
+    Dim open_val As Double
+    Dim tot_vol As Double
+    Dim sum_ctr As Long
+    Dim gmax_val As Double
+    Dim gmin_val As Double
+    Dim gtot_vol As Double
+    Dim gmax_tick As String
+    Dim gmin_tick As String
+    Dim gtot_tick As String
+    
+    For Each sht In ActiveWorkbook.Worksheets
+        
+        'Determine size of raw data
+        lrowdata = sht.Cells(sht.Rows.Count, "A").End(xlUp).Row
+        
+        'Add header rows
+        sht.Range("I1") = "Ticker"
+        sht.Range("J1") = "Yearly Change"
+        sht.Range("K1") = "Yearly % Change"
+        sht.Range("L1") = "Total Stock Volume"
+        sht.Range("O2") = "Greatest % Increase"
+        sht.Range("O3") = "Greatest % Decrease"
+        sht.Range("O4") = "Greatest Total Volume"
+        sht.Range("P1") = "Ticker"
+        sht.Range("Q1") = "Value"
+    
+        'Initialize variables for first data set
+        sum_ctr = 2
+        open_val = sht.Cells(2, 3)
+        
+        'Iterate through detail data
+        For rowcount = 2 To lrowdata
+            
+            'Evaluate if current row = next row
+            If sht.Cells(rowcount, 1) <> sht.Cells(rowcount + 1, 1) Then
+                close_val = sht.Cells(rowcount, 6) 'Set close value to current row
+                sht.Cells(sum_ctr, 9) = sht.Cells(rowcount, 1) 'Set summary ticker row to current row
+                
+                'Evaluate for division by zero
+                If open_val = 0 Then
+                    sht.Cells(sum_ctr, 10) = 0
+                    sht.Cells(sum_ctr, 11) = Format(0, "Percent")
+                Else
+                    sht.Cells(sum_ctr, 10) = close_val - open_val
+                    sht.Cells(sum_ctr, 11) = Format((close_val - open_val) / open_val, "Percent")
+                End If
+            
+                'Evaluate for conditional formatting
+                If (close_val - open_val) < 0 Then
+                    sht.Cells(sum_ctr, 10).Interior.ColorIndex = 3
+                Else
+                    sht.Cells(sum_ctr, 10).Interior.ColorIndex = 4
+                End If
+                
+                sht.Cells(sum_ctr, 12) = tot_vol + sht.Cells(rowcount, 7) 'Add current row to volume total
+                
+                'Reset variables
+                tot_vol = 0
+                sum_ctr = sum_ctr + 1
+                
+                open_val = sht.Cells(rowcount + 1, 3) 'Set next open value to next row
+            Else
+                tot_vol = tot_vol + sht.Cells(rowcount, 7) 'Cumulate volume metric
+            End If
+        Next rowcount
+        
+        'Determine size of summary data
+        lrowsum = sht.Cells(sht.Rows.Count, "I").End(xlUp).Row
+        
+        'Initialize variables to first value
+        gmax_val = sht.Cells(2, 11)
+        gmin_val = sht.Cells(2, 11)
+        gtot_vol = sht.Cells(2, 12)
+        
+        'Iterate through summary data
+        For rowcount2 = 2 To lrowsum
+        
+            'Check for max and min values
+            If sht.Cells(rowcount2, 11) > gmax_val Then
+                gmax_val = sht.Cells(rowcount2, 11)
+                gmax_tick = sht.Cells(rowcount2, 9)
+            ElseIf sht.Cells(rowcount2, 11) < gmin_val Then
+                gmin_val = sht.Cells(rowcount2, 11)
+                gmin_tick = sht.Cells(rowcount2, 9)
+            End If
+            
+            'Check for volume max
+            If sht.Cells(rowcount2, 12) > gtot_vol Then
+                gtot_vol = sht.Cells(rowcount2, 12)
+                gtot_tick = sht.Cells(rowcount2, 9)
+            End If
+            
+            'Display values
+            sht.Range("Q2") = Format(gmax_val, "Percent")
+            sht.Range("Q3") = Format(gmin_val, "Percent")
+            sht.Range("Q4") = gtot_vol
+            sht.Range("P2") = gmax_tick
+            sht.Range("P3") = gmin_tick
+            sht.Range("P4") = gtot_tick
+            
+        Next rowcount2
+    Next sht
+    
+    Application.ScreenUpdating = screenupdatestate
+    Application.DisplayStatusBar = statusbarstate
+    Application.Calculation = calcstate
+    Application.EnableEvents = eventsstate
+    
+End Sub

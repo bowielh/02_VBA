@@ -1,0 +1,79 @@
+Sub moderate_2()
+
+    screenupdatestate = Application.ScreenUpdating
+    statusbarstate = Application.DisplayStatusBar
+    calcstate = Application.Calculation
+    eventsstate = Application.EnableEvents
+
+    Application.ScreenUpdating = False
+    Application.DisplayStatusBar = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
+    Dim sht As Excel.Worksheet
+    Dim colcount As Long
+    Dim rowcount As Long
+    Dim lrowdata As Long
+    Dim close_val As Double
+    Dim open_val As Double
+    Dim tot_vol As Double
+    Dim sum_ctr As Long
+    
+    For Each sht In ActiveWorkbook.Worksheets
+        
+        'Determine size of raw data
+        lrowdata = sht.Cells(sht.Rows.Count, "A").End(xlUp).Row
+        
+        'Add header rows
+        sht.Range("I1") = "Ticker"
+        sht.Range("J1") = "Yearly Change"
+        sht.Range("K1") = "Yearly % Change"
+        sht.Range("L1") = "Total Stock Volume"
+    
+        'Initialize variables for first data set
+        sum_ctr = 2
+        open_val = sht.Cells(2, 3)
+        
+        'Loop to cycle through each row
+        For rowcount = 2 To lrowdata
+            
+            'Evaluate if current row = next row
+            If sht.Cells(rowcount, 1) <> sht.Cells(rowcount + 1, 1) Then
+                close_val = sht.Cells(rowcount, 6) 'Set close value to current row
+                sht.Cells(sum_ctr, 9) = sht.Cells(rowcount, 1) 'Set summary ticker row to current row
+                
+                'Evaluate for division by zero
+                If open_val = 0 Then
+                    sht.Cells(sum_ctr, 10) = 0
+                    sht.Cells(sum_ctr, 11) = Format(0, "Percent")
+                Else
+                    sht.Cells(sum_ctr, 10) = close_val - open_val
+                    sht.Cells(sum_ctr, 11) = Format((close_val - open_val) / open_val, "Percent")
+                End If
+            
+                'Evaluate for conditional formatting
+                If (close_val - open_val) < 0 Then
+                    sht.Cells(sum_ctr, 10).Interior.ColorIndex = 3
+                Else
+                    sht.Cells(sum_ctr, 10).Interior.ColorIndex = 4
+                End If
+                
+                sht.Cells(sum_ctr, 12) = tot_vol + sht.Cells(rowcount, 7) 'Add current row to volume total
+                
+                'Reset variables
+                tot_vol = 0
+                sum_ctr = sum_ctr + 1
+                
+                open_val = sht.Cells(rowcount + 1, 3) 'Set next open value to next row
+            Else
+                tot_vol = tot_vol + sht.Cells(rowcount, 7) 'Cumulate volume metric
+            End If
+        Next rowcount
+    Next sht
+    
+    Application.ScreenUpdating = screenupdatestate
+    Application.DisplayStatusBar = statusbarstate
+    Application.Calculation = calcstate
+    Application.EnableEvents = eventsstate
+    
+End Sub
